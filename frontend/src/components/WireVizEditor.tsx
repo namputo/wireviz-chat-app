@@ -2,33 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Editor from '@monaco-editor/react'
-import { Play, Download, Copy, Upload, FolderOpen, Save } from 'lucide-react'
+import { Play, Download, Copy, Upload, FolderOpen, Save, Undo, Redo } from 'lucide-react'
 
-const defaultYaml = `connectors:
-  X1:
-    type: D-Sub
-    subtype: female
-    pincount: 9
-    pins: [1, 2, 3, 4, 5, 6, 7, 8, 9]
-  X2:
-    type: Molex KK
-    subtype: female
-    pincount: 4
-    pins: [1, 2, 3, 4]
-
-cables:
-  W1:
-    gauge: 22 AWG
-    length: 0.2
-    color_code: DIN
-    wirecount: 4
-    shield: true
-
-connections:
-  - 
-    - X1: [1, 2, 3, 4]
-    - W1: [1, 2, 3, 4]
-    - X2: [1, 2, 3, 4]`
+const defaultYaml = ``
 
 interface WireVizEditorProps {
   onYamlChange?: (yaml: string) => void
@@ -43,8 +19,12 @@ export default function WireVizEditor({ onYamlChange, yamlContent: externalYamlC
   const [editingFileName, setEditingFileName] = useState('')
   const [isModified, setIsModified] = useState(false)
   const [originalContent, setOriginalContent] = useState('')
+  const [history, setHistory] = useState<string[]>([defaultYaml])
+  const [historyIndex, setHistoryIndex] = useState(0)
+  const [isUndoRedoAction, setIsUndoRedoAction] = useState(false)
   const lastExternalContent = useRef(externalYamlContent)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const maxHistoryLength = 10
 
   // Update editor when external content changes (from chat)
   useEffect(() => {
@@ -54,14 +34,46 @@ export default function WireVizEditor({ onYamlChange, yamlContent: externalYamlC
       console.log('Updating editor with external content:', externalYamlContent)
       setEditorContent(externalYamlContent)
       lastExternalContent.current = externalYamlContent
+      // Add external content to history
+      addToHistory(externalYamlContent)
     }
   }, [externalYamlContent, editorContent])
+
+  const addToHistory = (content: string) => {
+    if (isUndoRedoAction) return // Don't add to history during undo/redo
+    
+    setHistory(prev => {
+      // If we're not at the end of history, remove everything after current index
+      const newHistory = prev.slice(0, historyIndex + 1)
+      
+      // Add new content
+      newHistory.push(content)
+      
+      // Keep only last maxHistoryLength items
+      if (newHistory.length > maxHistoryLength) {
+        newHistory.shift()
+        return newHistory
+      }
+      
+      return newHistory
+    })
+    
+    setHistoryIndex(prev => {
+      const newIndex = Math.min(prev + 1, maxHistoryLength - 1)
+      return newIndex
+    })
+  }
 
   const handleEditorChange = (value: string | undefined) => {
     const newValue = value || ''
     console.log('Editor changed:', newValue)
     setEditorContent(newValue)
     onYamlChange?.(newValue)
+    
+    // Add to history if it's a user edit (not undo/redo)
+    if (!isUndoRedoAction && newValue !== history[historyIndex]) {
+      addToHistory(newValue)
+    }
     
     // Check if content has been modified from original
     if (currentFileName && originalContent !== newValue) {
@@ -146,6 +158,9 @@ export default function WireVizEditor({ onYamlChange, yamlContent: externalYamlC
         setCurrentFileName(file.name)
         setOriginalContent(content)
         setIsModified(false)
+        // Reset history when loading a new file
+        setHistory([content])
+        setHistoryIndex(0)
         onYamlChange?.(content)
       }
     }
@@ -158,7 +173,7 @@ export default function WireVizEditor({ onYamlChange, yamlContent: externalYamlC
   }
 
   const createNewFile = () => {
-    if (isModified || (editorContent !== defaultYaml && editorContent.trim() !== '')) {
+    if (isModified || editorContent.trim() !== '') {
       const confirmNew = window.confirm('Are you sure you want to create a new file? Your current changes will be lost.')
       if (!confirmNew) return
     }
@@ -167,6 +182,9 @@ export default function WireVizEditor({ onYamlChange, yamlContent: externalYamlC
     setCurrentFileName(null)
     setOriginalContent('')
     setIsModified(false)
+    // Reset history when creating a new file
+    setHistory([defaultYaml])
+    setHistoryIndex(0)
     onYamlChange?.(defaultYaml)
   }
 
@@ -202,6 +220,56 @@ export default function WireVizEditor({ onYamlChange, yamlContent: externalYamlC
       cancelEditingFileName()
     }
   }
+
+  const undo = () => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1
+      const content = history[newIndex]
+      
+      setIsUndoRedoAction(true)
+      setEditorContent(content)
+      setHistoryIndex(newIndex)
+      onYamlChange?.(content)
+      
+      // Reset flag after a brief delay to allow the change to propagate
+      setTimeout(() => setIsUndoRedoAction(false), 100)
+    }
+  }
+
+  const redo = () => {
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1
+      const content = history[newIndex]
+      
+      setIsUndoRedoAction(true)
+      setEditorContent(content)
+      setHistoryIndex(newIndex)
+      onYamlChange?.(content)
+      
+      // Reset flag after a brief delay to allow the change to propagate
+      setTimeout(() => setIsUndoRedoAction(false), 100)
+    }
+  }
+
+  const canUndo = historyIndex > 0
+  const canRedo = historyIndex < history.length - 1
+
+  // Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
+        e.preventDefault()
+        undo()
+      } else if (((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Z') || 
+                 ((e.ctrlKey || e.metaKey) && e.key === 'y')) {
+        e.preventDefault()
+        redo()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [historyIndex, history])
 
   return (
     <div className="h-full flex flex-col">
@@ -242,6 +310,24 @@ export default function WireVizEditor({ onYamlChange, yamlContent: externalYamlC
             >
               <FolderOpen size={16} />
             </button>
+            <div className="flex space-x-0.5">
+              <button
+                onClick={undo}
+                disabled={!canUndo}
+                className="p-2 bg-gray-600 rounded-l-md hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                title="Undo (Ctrl+Z)"
+              >
+                <Undo size={16} />
+              </button>
+              <button
+                onClick={redo}
+                disabled={!canRedo}
+                className="p-2 bg-gray-600 rounded-r-md hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                title="Redo (Ctrl+Y)"
+              >
+                <Redo size={16} />
+              </button>
+            </div>
             {currentFileName && (
               <button
                 onClick={quickSave}
@@ -282,9 +368,17 @@ export default function WireVizEditor({ onYamlChange, yamlContent: externalYamlC
         
         {/* Status indicator and file info */}
         <div className="mt-3 flex items-center justify-between text-xs">
-          <div className="flex items-center space-x-2">
-            <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
-            <span className="text-gray-300 font-mono">Live editing</span>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="text-gray-300 font-mono">Live editing</span>
+            </div>
+            <div className="flex items-center space-x-2 text-gray-400">
+              <span className="font-mono">History:</span>
+              <span className="bg-gray-600 px-2 py-0.5 rounded-md font-mono">
+                {historyIndex + 1}/{history.length}
+              </span>
+            </div>
           </div>
           
           {currentFileName && (
@@ -325,6 +419,7 @@ export default function WireVizEditor({ onYamlChange, yamlContent: externalYamlC
                 >
                   <span>📁</span>
                   <span>{currentFileName}</span>
+                  {isModified && <span className="text-orange-400 text-xs ml-1">●</span>}
                   <span className="text-gray-400 text-xs ml-1">✏️</span>
                 </button>
               )}

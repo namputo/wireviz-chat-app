@@ -5,31 +5,7 @@ import ChatInterface from '@/components/ChatInterface'
 import WireVizEditor from '@/components/WireVizEditor'
 import DiagramPreview from '@/components/DiagramPreview'
 
-const defaultYaml = `connectors:
-  X1:
-    type: D-Sub
-    subtype: female
-    pincount: 9
-    pins: [1, 2, 3, 4, 5, 6, 7, 8, 9]
-  X2:
-    type: Molex KK
-    subtype: female
-    pincount: 4
-    pins: [1, 2, 3, 4]
-
-cables:
-  W1:
-    gauge: 22 AWG
-    length: 0.2
-    color_code: DIN
-    wirecount: 4
-    shield: true
-
-connections:
-  - 
-    - X1: [1, 2, 3, 4]
-    - W1: [1, 2, 3, 4]
-    - X2: [1, 2, 3, 4]`
+const defaultYaml = ``
 
 export default function Home() {
   const [yamlContent, setYamlContent] = useState(defaultYaml)
