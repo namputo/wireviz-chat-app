@@ -132,6 +132,9 @@ pids/
 # Documentation
 docs/_build/
 
+# Deployment plans (contains sensitive deployment info)
+deploymentPlan.md
+
 # Unit test / coverage reports
 htmlcov/
 .nox/
