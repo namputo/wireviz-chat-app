@@ -107,6 +107,10 @@ Thumbs.db
 *.html
 *.tsv
 
+# Exception: Allow screenshots for documentation
+!screenshots/*.png
+!screenshots/*.svg
+
 # API Keys and secrets (extra protection)
 *key*
 *secret*
