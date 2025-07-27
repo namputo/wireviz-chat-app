@@ -107,7 +107,7 @@ An AI-powered web application for creating and editing wiring diagrams using Wir
 - **Undo/Redo**: Full edit history with 10-level undo/redo support
 - **Keyboard Shortcuts**: Ctrl+Z (undo), Ctrl+Y (redo), cross-platform compatible
 
-![YAML Editor Features](./screenshots/yaml-editor.png)
+
 
 ### AI Chat Assistant
 
@@ -124,7 +124,7 @@ AI: I'll create a USB cable configuration for you with 4 wires...
 - "Connect pin 1 to pin 3"
 - "Change the cable gauge to 18 AWG"
 
-![AI Chat Examples](./screenshots/ai-examples.png)
+
 
 ### Diagram Preview
 
@@ -133,7 +133,6 @@ AI: I'll create a USB cable configuration for you with 4 wires...
 - **Bill of Materials**: Auto-generated component lists
 - **Responsive Display**: Diagrams scale to fit your screen
 
-![Diagram Preview Options](./screenshots/preview-options.png)
 
 ## 🛠️ Advanced Features
 
@@ -190,7 +189,7 @@ cables:
   W1:
     gauge: 28 AWG
     length: 1.0
-    color_code: USB
+    color_code: DIN
     wirecount: 4
     shield: true
 
@@ -220,7 +219,7 @@ cables:
     gauge: 22 AWG
     length: 0.5
     wirecount: 2
-    colors: [RED, BLACK]
+    colors: [RD, BK]
 
 connections:
   - 
@@ -273,28 +272,6 @@ wireviz-editor/
 - OpenAI/Anthropic integration
 - WireViz for diagram generation
 - Pydantic for data validation
-
-## 🚀 Deployment
-
-See [deploymentPlan.md](./deploymentPlan.md) for comprehensive deployment instructions including:
-
-- Authentication setup
-- Database configuration  
-- Platform-specific guides (Vercel, Railway, Render, AWS)
-- Security best practices
-- Cost analysis
-
-### Quick Deploy Options
-
-**Vercel + Railway (Recommended)**
-- Frontend: Deploy to Vercel
-- Backend: Deploy to Railway
-- Cost: $10-20/month
-
-**Render**
-- Full-stack deployment
-- Good free tier
-- Cost: $7-25/month
 
 ## 🤝 Contributing
 
