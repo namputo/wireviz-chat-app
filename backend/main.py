@@ -1,6 +1,9 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import json
 import asyncio
 from typing import Dict, List
@@ -13,12 +16,16 @@ from models.schemas import ChatMessage, WireVizRequest, WireVizResponse
 
 load_dotenv()
 
+# Rate limiting
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="WireViz Chat App", version="1.0.0")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -56,7 +63,8 @@ async def root():
     return {"message": "WireViz Chat App API"}
 
 @app.post("/api/chat")
-async def chat_endpoint(message: ChatMessage):
+@limiter.limit("10/minute")
+async def chat_endpoint(request: Request, message: ChatMessage):
     """Process chat message and return LLM response with WireViz YAML"""
     try:
         response = await llm_service.process_message(message.content, message.current_yaml)
@@ -65,10 +73,11 @@ async def chat_endpoint(message: ChatMessage):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/generate-diagram", response_model=WireVizResponse)
-async def generate_diagram(request: WireVizRequest):
+@limiter.limit("30/minute")
+async def generate_diagram(request: Request, wireviz_request: WireVizRequest):
     """Generate diagram from WireViz YAML"""
     try:
-        result = await wireviz_service.generate_diagram(request.yaml_content, request.format)
+        result = await wireviz_service.generate_diagram(wireviz_request.yaml_content, wireviz_request.format)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

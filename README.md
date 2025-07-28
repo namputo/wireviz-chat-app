@@ -304,6 +304,19 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Next.js** - React framework for the frontend
 - **FastAPI** - High-performance Python web framework
 
+## 🔒 Security
+
+### Environment Configuration
+- **Never commit API keys**: Use `.env` files (already gitignored)
+- **Production deployment**: Set `DEBUG=False` and configure `ALLOWED_ORIGINS`
+- **API key security**: Regenerate keys if accidentally exposed
+
+### Best Practices
+- Keep your `.env` file secure and never share it
+- Use environment-specific configuration for production deployments
+- Regularly rotate API keys for enhanced security
+- Monitor API usage to detect any unauthorized access
+
 ## 📞 Support
 
 - 🐛 **Issues**: Report bugs on GitHub Issues
@@ -312,7 +325,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Made with ❤️ with Claude Code by Vamsi**
+**Built with Claude Code**
 
 ![Built with Love](https://img.shields.io/badge/Built%20with-Love-red?style=flat&logo=heart)
 ![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat&logo=next.js)
